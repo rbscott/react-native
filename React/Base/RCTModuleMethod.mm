@@ -20,6 +20,9 @@
 #import "RCTProfile.h"
 #import "RCTUtils.h"
 
+// Global debugging callback that is synchronously called for each method invocation.
+id<RCTMethodListener> __globalMethodListener;
+
 typedef BOOL (^RCTArgumentBlock)(RCTBridge *, NSUInteger, id);
 
 /**
@@ -52,6 +55,7 @@ static SEL selectorForType(NSString *type)
   Class _moduleClass;
   const RCTMethodInfo *_methodInfo;
   NSString *_JSMethodName;
+  NSString *_MLModuleName;
 
   SEL _selector;
   NSInvocation *_invocation;
@@ -516,6 +520,19 @@ RCT_EXTERN_C_END
   }
 #endif
 
+  if (nil != __globalMethodListener) {
+    if (nil == _JSMethodName) {
+      [self JSMethodName];
+    }
+    NSString* currentMethodName = _JSMethodName;
+
+    if (nil == _MLModuleName) {
+      _MLModuleName = RCTBridgeModuleNameForClass(_moduleClass);
+    }
+
+    [__globalMethodListener calledWithModule:_MLModuleName withMethodName:currentMethodName withNumArguments:arguments.count];
+  }
+
   // Set arguments
   NSUInteger index = 0;
   for (id json in arguments) {
@@ -573,6 +590,10 @@ RCT_EXTERN_C_END
 {
   return [NSString stringWithFormat:@"<%@: %p; exports %@ as %s(); type: %s>",
           [self class], self, [self methodName], self.JSMethodName, RCTFunctionDescriptorFromType(self.functionType)];
+}
+
++ (void)setMethodListener:(id<RCTMethodListener>)methodListener {
+  __globalMethodListener = methodListener;
 }
 
 @end

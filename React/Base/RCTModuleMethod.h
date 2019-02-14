@@ -13,6 +13,12 @@
 
 @class RCTBridge;
 
+@protocol RCTMethodListener
+
+- (void)calledWithModule:(NSString*)moduleName withMethodName:(NSString*)methodName withNumArguments:(NSInteger)numArguments;
+
+@end
+
 @interface RCTMethodArgument : NSObject
 
 @property (nonatomic, copy, readonly) NSString *type;
@@ -28,5 +34,7 @@
 
 - (instancetype)initWithExportedMethod:(const RCTMethodInfo *)exportMethod
                            moduleClass:(Class)moduleClass NS_DESIGNATED_INITIALIZER;
+
++ (void)setMethodListener:(id<RCTMethodListener>)methodListener;
 
 @end
