@@ -20,6 +20,16 @@ import javax.annotation.Nullable;
 
 public class JavaMethodWrapper implements NativeModule.NativeMethod {
 
+  public static interface MethodListener {
+    void methodCalled(String moduleName, String methodName, int numArguments);
+  }
+
+  private static MethodListener METHOD_LISTENER = null;
+
+  public static void setMethodListener(MethodListener methodListener) {
+    METHOD_LISTENER = methodListener;
+  }
+
   private static abstract class ArgumentExtractor<T> {
     public int getJSArgumentsNeeded() {
       return 1;
@@ -329,7 +339,10 @@ public class JavaMethodWrapper implements NativeModule.NativeMethod {
 
   @Override
   public void invoke(JSInstance jsInstance, ReadableNativeArray parameters) {
-    String traceName = mModuleWrapper.getName() + "." + mMethod.getName();
+    String moduleName = mModuleWrapper.getName();
+    String methodName = mMethod.getName();
+
+    String traceName = moduleName + "." + methodName;
     SystraceMessage.beginSection(TRACE_TAG_REACT_JAVA_BRIDGE, "callJavaModuleMethod")
       .arg("method", traceName)
       .flush();
@@ -341,6 +354,13 @@ public class JavaMethodWrapper implements NativeModule.NativeMethod {
               mModuleWrapper.getName(),
               mMethod.getName());
     }
+
+    final MethodListener methodListener = METHOD_LISTENER;
+
+    if (methodListener != null) {
+      methodListener.methodCalled(moduleName, methodName, parameters.size());
+    }
+
     try {
       if (!mArgumentsProcessed) {
         processArguments();
